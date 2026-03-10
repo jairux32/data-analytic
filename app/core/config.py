@@ -81,7 +81,10 @@ class Settings(BaseSettings):
         else:
             # Fallback para desarrollo local o Railway mal configurado
             railway_host = os.environ.get("RAILWAY_PRIVATE_DOMAIN", "postgres.railway.internal")
-            values["database_url"] = f"postgresql://kobo_cacao:kobo_cacao_pass@{railway_host}:5432/kobo_cacao_db"
+            railway_user = os.environ.get("POSTGRES_USER", "postgres")
+            railway_password = os.environ.get("POSTGRES_PASSWORD", "AWeLirlnwKwBcadopFcGUxdkfnYKGtTX")
+            railway_db = os.environ.get("POSTGRES_DB", "railway")
+            values["database_url"] = f"postgresql://{railway_user}:{railway_password}@{railway_host}:5432/{railway_db}"
         
         # Redis URL - prioridad: entorno > .env > valor por defecto
         env_redis_url = os.environ.get("REDIS_URL")
