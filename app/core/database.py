@@ -39,8 +39,13 @@ def load_postgis(dbapi_connection, connection_record):
         cursor = dbapi_connection.cursor()
         cursor.execute("CREATE EXTENSION IF NOT EXISTS postgis")
         cursor.close()
-    except Exception:
-        dbapi_connection.rollback()
+    except Exception as e:
+        import logging
+        logging.warning(f"No se pudo inicializar PostGIS en la conexión: {e}")
+        try:
+            dbapi_connection.rollback()
+        except:
+            pass
 
 
 # SessionLocal factory
@@ -81,6 +86,7 @@ def init_db() -> None:
     """
     from app import models  # noqa: F401
     import time
+    import logging
     from sqlalchemy.exc import OperationalError
     
     max_retries = 5
@@ -88,6 +94,11 @@ def init_db() -> None:
     
     for attempt in range(max_retries):
         try:
+            # Validar conexión de forma atómica antes de crear metadatos
+            with engine.connect() as connection:
+                from sqlalchemy import text
+                connection.execute(text("SELECT 1"))
+                
             Base.metadata.create_all(bind=engine)
             print("Tablas de base de datos creadas exitosamente.")
             break
