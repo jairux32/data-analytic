@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perfil - Diagnóstico Socioambiental Cacaotero</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        cacao: {
+                            50: '#f7f5f0',
+                            100: '#ede8db',
+                            200: '#d9d0b5',
+                            300: '#c0b48a',
+                            400: '#a89860',
+                            500: '#8f7c36',
+                            600: '#725e2c',
+                            700: '#554922',
+                            800: '#393518',
+                            900: '#1c190c',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100">
+    <!-- Sidebar -->
+    <div class="fixed inset-y-0 left-0 w-64 bg-cacao-800 text-white">
+        <div class="p-6">
+            <h1 class="text-xl font-bold">Diagnóstico<br>Cacaotero</h1>
+            <p class="text-xs text-cacao-200 mt-1">Guayas & Los Ríos</p>
+        </div>
+        <nav class="mt-6">
+            <a href="/dashboard" class="flex items-center px-6 py-3 hover:bg-cacao-700 border-l-4 border-transparent">
+                <i class="fas fa-chart-bar w-5"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="/maps" class="flex items-center px-6 py-3 hover:bg-cacao-700 border-l-4 border-transparent">
+                <i class="fas fa-map-marked-alt w-5"></i>
+                <span>Mapas</span>
+            </a>
+            <a href="/tables" class="flex items-center px-6 py-3 hover:bg-cacao-700 border-l-4 border-transparent">
+                <i class="fas fa-table w-5"></i>
+                <span>Datos</span>
+            </a>
+            {% if user.role == 'admin' %}
+            <a href="/admin" class="flex items-center px-6 py-3 hover:bg-cacao-700 border-l-4 border-transparent">
+                <i class="fas fa-cog w-5"></i>
+                <span>Admin</span>
+            </a>
+            {% endif %}
+        </nav>
+        <div class="absolute bottom-0 w-full p-6">
+            <div class="flex items-center">
+                <div class="w-8 h-8 rounded-full bg-cacao-500 flex items-center justify-center">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-medium">{{ user.full_name }}</p>
+                    <p class="text-xs text-cacao-200">{{ user.role }}</p>
+                </div>
+            </div>
+            <button onclick="logout()" class="mt-4 w-full text-left text-sm text-cacao-200 hover:text-white">
+                <i class="fas fa-sign-out-alt mr-2"></i>Cerrar Sesión
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="ml-64 p-8">
+        <div class="max-w-2xl">
+            <h1 class="text-2xl font-bold text-gray-800 mb-6">Mi Perfil</h1>
+
+            <!-- Profile Card -->
+            <div class="bg-white rounded-lg shadow p-6 mb-6">
+                <div class="flex items-center mb-6">
+                    <div class="w-20 h-20 rounded-full bg-cacao-500 flex items-center justify-center text-white text-3xl">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="ml-6">
+                        <h2 id="displayName" class="text-xl font-bold">{{ user.full_name }}</h2>
+                        <p id="displayEmail" class="text-gray-600">{{ user.email }}</p>
+                        <span class="inline-block mt-2 px-3 py-1 bg-cacao-100 text-cacao-800 rounded-full text-sm capitalize">
+                            {{ user.role }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Edit Profile Form -->
+            <div class="bg-white rounded-lg shadow p-6 mb-6">
+                <h3 class="text-lg font-medium mb-4">Editar Perfil</h3>
+                <form id="profileForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Nombre Completo</label>
+                        <input type="text" id="fullName" name="fullName" value="{{ user.full_name }}"
+                            class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-cacao-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico</label>
+                        <input type="email" value="{{ user.email }}" disabled
+                            class="w-full px-3 py-2 border rounded-lg bg-gray-100 text-gray-500">
+                        <p class="text-xs text-gray-500 mt-1">El correo electrónico no se puede cambiar</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Zona</label>
+                        <input type="text" value="{{ user.zone }}" disabled
+                            class="w-full px-3 py-2 border rounded-lg bg-gray-100 text-gray-500 capitalize">
+                    </div>
+                    <button type="submit" class="px-4 py-2 bg-cacao-600 text-white rounded-lg hover:bg-cacao-700">
+                        <i class="fas fa-save mr-2"></i>Guardar Cambios
+                    </button>
+                </form>
+                <div id="profileMessage" class="mt-4 hidden"></div>
+            </div>
+
+            <!-- Change Password Form -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-medium mb-4">Cambiar Contraseña</h3>
+                <form id="passwordForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Contraseña Actual</label>
+                        <input type="password" id="currentPassword" required
+                            class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-cacao-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Nueva Contraseña</label>
+                        <input type="password" id="newPassword" required minlength="6"
+                            class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-cacao-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Confirmar Nueva Contraseña</label>
+                        <input type="password" id="confirmPassword" required minlength="6"
+                            class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-cacao-500">
+                    </div>
+                    <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+                        <i class="fas fa-lock mr-2"></i>Cambiar Contraseña
+                    </button>
+                </form>
+                <div id="passwordMessage" class="mt-4 hidden"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Profile form
+        document.getElementById('profileForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fullName = document.getElementById('fullName').value;
+            const messageDiv = document.getElementById('profileMessage');
+            
+            try {
+                const response = await fetch('/api/auth/me', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ full_name: fullName })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('displayName').textContent = fullName;
+                    messageDiv.className = 'mt-4 p-3 bg-green-100 text-green-700 rounded-lg';
+                    messageDiv.textContent = 'Perfil actualizado correctamente';
+                } else {
+                    messageDiv.className = 'mt-4 p-3 bg-red-100 text-red-700 rounded-lg';
+                    messageDiv.textContent = data.detail || 'Error al actualizar perfil';
+                }
+                messageDiv.classList.remove('hidden');
+            } catch (error) {
+                messageDiv.className = 'mt-4 p-3 bg-red-100 text-red-700 rounded-lg';
+                messageDiv.textContent = 'Error de conexión';
+                messageDiv.classList.remove('hidden');
+            }
+        });
+
+        // Password form
+        document.getElementById('passwordForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const messageDiv = document.getElementById('passwordMessage');
+            
+            if (newPassword !== confirmPassword) {
+                messageDiv.className = 'mt-4 p-3 bg-red-100 text-red-700 rounded-lg';
+                messageDiv.textContent = 'Las contraseñas no coinciden';
+                messageDiv.classList.remove('hidden');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/auth/password', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        current_password: currentPassword, 
+                        new_password: newPassword 
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    messageDiv.className = 'mt-4 p-3 bg-green-100 text-green-700 rounded-lg';
+                    messageDiv.textContent = 'Contraseña cambiada correctamente';
+                    document.getElementById('passwordForm').reset();
+                } else {
+                    messageDiv.className = 'mt-4 p-3 bg-red-100 text-red-700 rounded-lg';
+                    messageDiv.textContent = data.detail || 'Error al cambiar contraseña';
+                }
+                messageDiv.classList.remove('hidden');
+            } catch (error) {
+                messageDiv.className = 'mt-4 p-3 bg-red-100 text-red-700 rounded-lg';
+                messageDiv.textContent = 'Error de conexión';
+                messageDiv.classList.remove('hidden');
+            }
+        });
+
+        function logout() {
+            fetch('/api/auth/logout', { method: 'POST' })
+                .then(() => {
+                    window.location.href = '/login';
+                })
+                .catch(() => {
+                    window.location.href = '/login';
+                });
+        }
+    </script>
+</body>
+</html>

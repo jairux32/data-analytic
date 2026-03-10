@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Diagnóstico Socioambiental Cacaotero</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        cacao: {
+                            50: '#f7f5f0',
+                            100: '#ede8db',
+                            200: '#d9d0b5',
+                            300: '#c0b48a',
+                            400: '#a89860',
+                            500: '#8f7c36',
+                            600: '#725e2c',
+                            700: '#554922',
+                            800: '#393518',
+                            900: '#1c190c',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100">
+    <script>
+        // Intentar obtener usuario desde cookie o localStorage
+        let currentUser = {{ user_json | safe }};
+
+        // Si no hay usuario desde el servidor, intentar desde localStorage/API
+        if (!currentUser || !currentUser.id) {
+            const token = localStorage.getItem('access_token');
+            if (token) {
+                // Obtener usuario desde la API
+                fetch('/api/auth/me', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.email) {
+                        currentUser = data;
+                        updateUserUI();
+                    } else {
+                        window.location.href = '/login';
+                    }
+                })
+                .catch(() => window.location.href = '/login');
+            } else {
+                window.location.href = '/login';
+            }
+        }
+
+        function updateUserUI() {
+            // Actualizar la UI con los datos del usuario
+            const userElements = document.querySelectorAll('.user-name');
+            const roleElements = document.querySelectorAll('.user-role');
+            userElements.forEach(el => el.textContent = currentUser.full_name);
+            roleElements.forEach(el => el.textContent = currentUser.role);
+
+            // Mostrar menú de admin si es admin
+            if (currentUser.role === 'admin') {
+                const adminLink = document.getElementById('adminLink');
+                if (adminLink) adminLink.style.display = 'block';
+            }
+        }
+    </script>
+    <!-- Sidebar -->
+    <div class="fixed inset-y-0 left-0 w-64 bg-cacao-800 text-white transition-all duration-300" id="sidebar">
+        <div class="p-6">
+            <h1 class="text-xl font-bold">Diagnóstico<br>Cacaotero</h1>
+            <p class="text-xs text-cacao-200 mt-1">Guayas & Los Ríos</p>
+        </div>
+        <nav class="mt-6">
+            <a href="/dashboard" class="flex items-center px-6 py-3 bg-cacao-700 border-l-4 border-white">
+                <i class="fas fa-chart-bar w-5"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="/maps" class="flex items-center px-6 py-3 hover:bg-cacao-700 border-l-4 border-transparent">
+                <i class="fas fa-map-marked-alt w-5"></i>
+                <span>Mapas</span>
+            </a>
+            <a href="/tables" class="flex items-center px-6 py-3 hover:bg-cacao-700 border-l-4 border-transparent">
+                <i class="fas fa-table w-5"></i>
+                <span>Datos</span>
+            </a>
+            {% if user.role == 'admin' %}
+            <a href="/admin" class="flex items-center px-6 py-3 hover:bg-cacao-700 border-l-4 border-transparent">
+                <i class="fas fa-cog w-5"></i>
+                <span>Admin</span>
+            </a>
+            {% endif %}
+            <a href="/profile" class="flex items-center px-6 py-3 hover:bg-cacao-700 border-l-4 border-transparent">
+                <i class="fas fa-user-circle w-5"></i>
+                <span>Mi Perfil</span>
+            </a>
+        </nav>
+        <div class="absolute bottom-0 w-full p-6">
+            <div class="flex items-center">
+                <div class="w-8 h-8 rounded-full bg-cacao-500 flex items-center justify-center">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-medium">{{ user.full_name }}</p>
+                    <p class="text-xs text-cacao-200">{{ user.role }}</p>
+                </div>
+            </div>
+            <button onclick="logout()" class="mt-4 w-full text-left text-sm text-cacao-200 hover:text-white">
+                <i class="fas fa-sign-out-alt mr-2"></i>Cerrar Sesión
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="ml-64 p-8">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-8">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-800">Dashboard Analítico</h1>
+                <p class="text-gray-600">Visualización de las 4 dimensiones del diagnóstico</p>
+            </div>
+            <div class="flex space-x-4">
+                <select id="provinceFilter" class="px-4 py-2 border rounded-lg">
+                    <option value="">Todas las Provincias</option>
+                    <option value="Guayas">Guayas</option>
+                    <option value="Los Ríos">Los Ríos</option>
+                </select>
+                <select id="genderFilter" class="px-4 py-2 border rounded-lg">
+                    <option value="">Todos los Géneros</option>
+                    <option value="masculino">Masculino</option>
+                    <option value="femenino">Femenino</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="mb-6">
+            <div class="border-b border-gray-200">
+                <nav class="-mb-px flex space-x-8">
+                    <button onclick="showTab('socioeconomic')" class="tab-btn border-cacao-500 text-cacao-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" data-tab="socioeconomic">
+                        Socioeconómica
+                    </button>
+                    <button onclick="showTab('agronomic')" class="tab-btn border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" data-tab="agronomic">
+                        Agronómica
+                    </button>
+                    <button onclick="showTab('environmental')" class="tab-btn border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" data-tab="environmental">
+                        Ambiental
+                    </button>
+                    <button onclick="showTab('governance')" class="tab-btn border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" data-tab="governance">
+                        Gobernanza
+                    </button>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div id="socioeconomic" class="tab-content">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center">
+                        <div class="p-3 rounded-full bg-blue-100 text-blue-600">
+                            <i class="fas fa-users text-xl"></i>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-500">Total Productores</p>
+                            <p id="totalProducers" class="text-2xl font-bold text-gray-900">0</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center">
+                        <div class="p-3 rounded-full bg-green-100 text-green-600">
+                            <i class="fas fa-map-marker-alt text-xl"></i>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-500">Provincias</p>
+                            <p id="totalProvinces" class="text-2xl font-bold text-gray-900">0</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center">
+                        <div class="p-3 rounded-full bg-purple-100 text-purple-600">
+                            <i class="fas fa-user-clock text-xl"></i>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-500">Edad Promedio</p>
+                            <p id="avgAge" class="text-2xl font-bold text-gray-900">0</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center">
+                        <div class="p-3 rounded-full bg-yellow-100 text-yellow-600">
+                            <i class="fas fa-seedling text-xl"></i>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-500">Finca Promedio (ha)</p>
+                            <p id="avgFarmSize" class="text-2xl font-bold text-gray-900">0</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-medium mb-4">Distribución por Provincia</h3>
+                    <div id="provinceChart"></div>
+                </div>
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-medium mb-4">Distribución por Género</h3>
+                    <div id="genderChart"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="agronomic" class="tab-content hidden">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center">
+                        <div class="p-3 rounded-full bg-green-100 text-green-600">
+                            <i class="fas fa-chart-line text-xl"></i>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-500">Rendimiento Promedio</p>
+                            <p id="avgYield" class="text-2xl font-bold text-gray-900">0 qq/ha</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center">
+                        <div class="p-3 rounded-full bg-indigo-100 text-indigo-600">
+                            <i class="fas fa-handshake text-xl"></i>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-500">Miembros de Org.</p>
+                            <p id="orgMembers" class="text-2xl font-bold text-gray-900">0%</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center">
+                        <div class="p-3 rounded-full bg-teal-100 text-teal-600">
+                            <i class="fas fa-tools text-xl"></i>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-500">Asistencia Técnica</p>
+                            <p id="techAssist" class="text-2xl font-bold text-gray-900">0%</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-medium mb-4">Variedades de Cacao</h3>
+                    <div id="varietiesChart"></div>
+                </div>
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-medium mb-4">Uso de Fertilizantes</h3>
+                    <div id="fertilizerChart"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="environmental" class="tab-content hidden">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-medium mb-4">Cobertura Forestal (%)</h3>
+                    <div id="forestChart"></div>
+                </div>
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-medium mb-4">Riesgos Ambientales</h3>
+                    <div id="risksChart"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="governance" class="tab-content hidden">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center">
+                        <div class="p-3 rounded-full bg-blue-100 text-blue-600">
+                            <i class="fas fa-coins text-xl"></i>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-500">Acceso a Crédito</p>
+                            <p id="creditAccess" class="text-2xl font-bold text-gray-900">0%</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-medium mb-4">Certificaciones</h3>
+                    <div id="certificationsChart"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentTab = 'socioeconomic';
+
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(tabName).classList.remove('hidden');
+
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('border-cacao-500', 'text-cacao-600');
+                btn.classList.add('border-transparent', 'text-gray-500');
+            });
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('border-cacao-500', 'text-cacao-600');
+            document.querySelector(`[data-tab="${tabName}"]`).classList.remove('border-transparent', 'text-gray-500');
+
+            currentTab = tabName;
+            loadDashboardData();
+        }
+
+        async function loadDashboardData() {
+            const province = document.getElementById('provinceFilter').value;
+            const gender = document.getElementById('genderFilter').value;
+            const params = new URLSearchParams();
+            if (province) params.append('province', province);
+            if (gender) params.append('gender', gender);
+
+            try {
+                const response = await fetch(`/api/dashboard/${currentTab}?${params}`);
+                const data = await response.json();
+                updateCharts(data);
+            } catch (error) {
+                console.error('Error loading data:', error);
+            }
+        }
+
+        function updateCharts(data) {
+            if (currentTab === 'socioeconomic') {
+                document.getElementById('totalProducers').textContent = data.total_producers || 0;
+                document.getElementById('totalProvinces').textContent = Object.keys(data.by_province || {}).length;
+                document.getElementById('avgAge').textContent = Math.round(data.avg_age || 0);
+                document.getElementById('avgFarmSize').textContent = (data.avg_farm_size || 0).toFixed(1);
+
+                Plotly.newPlot('provinceChart', [{
+                    x: Object.values(data.by_province || {}),
+                    y: Object.keys(data.by_province || {}),
+                    type: 'bar',
+                    orientation: 'h',
+                    marker: { color: '#8f7c36' }
+                }], { margin: { l: 80 } });
+
+                Plotly.newPlot('genderChart', [{
+                    values: Object.values(data.by_gender || {}),
+                    labels: Object.keys(data.by_gender || {}),
+                    type: 'pie',
+                    marker: { colors: ['#3b82f6', '#ec4899'] }
+                }]);
+            } else if (currentTab === 'agronomic') {
+                document.getElementById('avgYield').textContent = (data.avg_yield || 0).toFixed(1) + ' qq/ha';
+                document.getElementById('orgMembers').textContent = (data.organization_members || 0).toFixed(0) + '%';
+                document.getElementById('techAssist').textContent = (data.technical_assistance_access || 0).toFixed(0) + '%';
+
+                Plotly.newPlot('varietiesChart', [{
+                    x: Object.values(data.varieties_distribution || {}),
+                    y: Object.keys(data.varieties_distribution || {}),
+                    type: 'bar',
+                    orientation: 'h',
+                    marker: { color: '#10b981' }
+                }], { margin: { l: 80 } });
+
+                Plotly.newPlot('fertilizerChart', [{
+                    x: ['Fertilizantes', 'Orgánico', 'Ninguno'],
+                    y: [data.fertilizer_usage?.fertilizers || 0, data.fertilizer_usage?.organic || 0, data.fertilizer_usage?.none || 0],
+                    type: 'bar',
+                    marker: { color: ['#f59e0b', '#10b981', '#6b7280'] }
+                }]);
+            } else if (currentTab === 'environmental') {
+                Plotly.newPlot('forestChart', [{
+                    x: ['Cobertura Forestal'],
+                    y: [data.avg_forest_coverage || 0],
+                    type: 'bar',
+                    marker: { color: '#22c55e' }
+                }]);
+
+                Plotly.newPlot('risksChart', [{
+                    x: Object.values(data.environmental_risks || {}),
+                    y: Object.keys(data.environmental_risks || {}),
+                    type: 'bar',
+                    orientation: 'h',
+                    marker: { color: '#ef4444' }
+                }], { margin: { l: 80 } });
+            } else if (currentTab === 'governance') {
+                document.getElementById('creditAccess').textContent = (data.credit_access || 0).toFixed(0) + '%';
+
+                Plotly.newPlot('certificationsChart', [{
+                    x: Object.values(data.certifications || {}),
+                    y: Object.keys(data.certifications || {}),
+                    type: 'bar',
+                    orientation: 'h',
+                    marker: { color: '#8b5cf6' }
+                }], { margin: { l: 80 } });
+            }
+        }
+
+        function logout() {
+            fetch('/api/auth/logout', { method: 'POST' })
+                .then(() => {
+                    window.location.href = '/login';
+                })
+                .catch(() => {
+                    window.location.href = '/login';
+                });
+        }
+
+        document.getElementById('provinceFilter').addEventListener('change', loadDashboardData);
+        document.getElementById('genderFilter').addEventListener('change', loadDashboardData);
+
+        // Load initial data
+        loadDashboardData();
+    </script>
+</body>
+</html>

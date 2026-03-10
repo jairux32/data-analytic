@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Datos - Diagnóstico Socioambiental Cacaotero</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        cacao: {
+                            50: '#f7f5f0',
+                            100: '#ede8db',
+                            200: '#d9d0b5',
+                            300: '#c0b48a',
+                            400: '#a89860',
+                            500: '#8f7c36',
+                            600: '#725e2c',
+                            700: '#554922',
+                            800: '#393518',
+                            900: '#1c190c',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100">
+    <!-- Sidebar -->
+    <div class="fixed inset-y-0 left-0 w-64 bg-cacao-800 text-white">
+        <div class="p-6">
+            <h1 class="text-xl font-bold">Diagnóstico<br>Cacaotero</h1>
+            <p class="text-xs text-cacao-200 mt-1">Guayas & Los Ríos</p>
+        </div>
+        <nav class="mt-6">
+            <a href="/dashboard" class="flex items-center px-6 py-3 hover:bg-cacao-700 border-l-4 border-transparent">
+                <i class="fas fa-chart-bar w-5"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="/maps" class="flex items-center px-6 py-3 hover:bg-cacao-700 border-l-4 border-transparent">
+                <i class="fas fa-map-marked-alt w-5"></i>
+                <span>Mapas</span>
+            </a>
+            <a href="/tables" class="flex items-center px-6 py-3 bg-cacao-700 border-l-4 border-white">
+                <i class="fas fa-table w-5"></i>
+                <span>Datos</span>
+            </a>
+            {% if user.role == 'admin' %}
+            <a href="/admin" class="flex items-center px-6 py-3 hover:bg-cacao-700 border-l-4 border-transparent">
+                <i class="fas fa-cog w-5"></i>
+                <span>Admin</span>
+            </a>
+            {% endif %}
+            <a href="/profile" class="flex items-center px-6 py-3 hover:bg-cacao-700 border-l-4 border-transparent">
+                <i class="fas fa-user-circle w-5"></i>
+                <span>Mi Perfil</span>
+            </a>
+        </nav>
+        <div class="absolute bottom-0 w-full p-6">
+            <div class="flex items-center">
+                <div class="w-8 h-8 rounded-full bg-cacao-500 flex items-center justify-center">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-medium">{{ user.full_name }}</p>
+                    <p class="text-xs text-cacao-200">{{ user.role }}</p>
+                </div>
+            </div>
+            <button onclick="logout()" class="mt-4 w-full text-left text-sm text-cacao-200 hover:text-white">
+                <i class="fas fa-sign-out-alt mr-2"></i>Cerrar Sesión
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="ml-64 p-8">
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-800">Datos de Encuestas</h1>
+                <p class="text-gray-600">Explora y filtra los registros de productores</p>
+            </div>
+            <div class="flex space-x-4">
+                <button onclick="exportCSV()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                    <i class="fas fa-file-csv mr-2"></i>Exportar CSV
+                </button>
+                <button onclick="exportExcel()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                    <i class="fas fa-file-excel mr-2"></i>Exportar Excel
+                </button>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="bg-white rounded-lg shadow p-4 mb-6">
+            <div class="grid grid-cols-5 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Provincia</label>
+                    <select id="provinceFilter" class="w-full border rounded px-3 py-2">
+                        <option value="">Todas</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Cantón</label>
+                    <select id="cantonFilter" class="w-full border rounded px-3 py-2">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Género</label>
+                    <select id="genderFilter" class="w-full border rounded px-3 py-2">
+                        <option value="">Todos</option>
+                        <option value="masculino">Masculino</option>
+                        <option value="femenino">Femenino</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Buscar</label>
+                    <input type="text" id="searchInput" placeholder="Nombre del productor" class="w-full border rounded px-3 py-2">
+                </div>
+                <div class="flex items-end">
+                    <button onclick="loadData()" class="w-full px-4 py-2 bg-cacao-600 text-white rounded hover:bg-cacao-700">
+                        <i class="fas fa-search mr-2"></i>Buscar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Productor</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Provincia</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cantón</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Género</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Edad</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hectáreas</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody" class="bg-white divide-y divide-gray-200">
+                    <tr>
+                        <td colspan="8" class="px-6 py-4 text-center text-gray-500">
+                            Cargando datos...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="mt-4 flex justify-between items-center">
+            <div class="text-sm text-gray-700">
+                Mostrando <span id="showingStart">0</span> - <span id="showingEnd">0</span> de <span id="totalItems">0</span> registros
+            </div>
+            <div class="flex space-x-2">
+                <button onclick="prevPage()" id="prevBtn" class="px-4 py-2 border rounded hover:bg-gray-50 disabled:opacity-50">
+                    Anterior
+                </button>
+                <span id="pageInfo" class="px-4 py-2">Página 1</span>
+                <button onclick="nextPage()" id="nextBtn" class="px-4 py-2 border rounded hover:bg-gray-50 disabled:opacity-50">
+                    Siguiente
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentPage = 1;
+        let totalPages = 1;
+        let totalItems = 0;
+
+        async function loadData() {
+            const province = document.getElementById('provinceFilter').value;
+            const canton = document.getElementById('cantonFilter').value;
+            const gender = document.getElementById('genderFilter').value;
+            const search = document.getElementById('searchInput').value;
+
+            const params = new URLSearchParams({
+                page: currentPage,
+                per_page: 20
+            });
+            if (province) params.append('province', province);
+            if (canton) params.append('canton', canton);
+            if (gender) params.append('gender', gender);
+            if (search) params.append('search', search);
+
+            try {
+                const response = await fetch(`/api/data/surveys?${params}`);
+                const data = await response.json();
+
+                totalItems = data.total;
+                totalPages = Math.ceil(data.total / data.per_page);
+
+                updateTable(data.items);
+                updatePagination();
+                
+                // Solo cargar filtros la primera vez
+                loadFiltersOnce();
+
+            } catch (error) {
+                console.error('Error loading data:', error);
+            }
+        }
+
+        let filtersLoaded = false;
+        function loadFiltersOnce() {
+            if (filtersLoaded) return;
+            filtersLoaded = true;
+            loadFilters();
+        }
+
+        function updateTable(items) {
+            const tbody = document.getElementById('tableBody');
+
+            if (items.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="px-6 py-4 text-center text-gray-500">
+                            No se encontraron registros
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = items.map(item => `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">${item.id}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">${item.producer_name || 'N/A'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">${item.province || 'N/A'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">${item.canton || 'N/A'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">${item.gender || 'N/A'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">${item.age || 'N/A'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">${item.farm_size_hectares || 'N/A'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                        <button onclick="viewDetail(${item.id})" class="text-cacao-600 hover:text-cacao-800">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+
+            const start = (currentPage - 1) * 20 + 1;
+            const end = Math.min(currentPage * 20, totalItems);
+            document.getElementById('showingStart').textContent = totalItems > 0 ? start : 0;
+            document.getElementById('showingEnd').textContent = end;
+            document.getElementById('totalItems').textContent = totalItems;
+        }
+
+        function updatePagination() {
+            document.getElementById('pageInfo').textContent = `Página ${currentPage} de ${totalPages}`;
+            document.getElementById('prevBtn').disabled = currentPage === 1;
+            document.getElementById('nextBtn').disabled = currentPage === totalPages;
+        }
+
+        async function loadFilters() {
+            try {
+                const response = await fetch('/api/data/filters');
+                const filters = await response.json();
+
+                const provinceSelect = document.getElementById('provinceFilter');
+                if (provinceSelect.options.length <= 1) {
+                    filters.provinces.forEach(p => {
+                        provinceSelect.innerHTML += `<option value="${p}">${p}</option>`;
+                    });
+                }
+
+                const cantonSelect = document.getElementById('cantonFilter');
+                if (cantonSelect.options.length <= 1) {
+                    filters.cantons.forEach(c => {
+                        cantonSelect.innerHTML += `<option value="${c}">${c}</option>`;
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading filters:', error);
+            }
+        }
+
+        // Cargar cantones cuando cambie la provincia
+        document.getElementById('provinceFilter').addEventListener('change', async function() {
+            const province = this.value;
+            const cantonSelect = document.getElementById('cantonFilter');
+            cantonSelect.innerHTML = '<option value="">Todos</option>';
+            
+            if (province) {
+                try {
+                    const response = await fetch(`/api/data/filters?province=${encodeURIComponent(province)}`);
+                    const filters = await response.json();
+                    filters.cantons.forEach(c => {
+                        cantonSelect.innerHTML += `<option value="${c}">${c}</option>`;
+                    });
+                } catch (error) {
+                    console.error('Error loading cantons:', error);
+                }
+            }
+        });
+
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                loadData();
+            }
+        }
+
+        function nextPage() {
+            if (currentPage < totalPages) {
+                currentPage++;
+                loadData();
+            }
+        }
+
+        function viewDetail(id) {
+            fetch(`/api/data/surveys/${id}`)
+                .then(res => res.json())
+                .then(data => {
+                    showDetailModal(data);
+                })
+                .catch(error => {
+                    console.error('Error loading survey:', error);
+                    alert('Error al cargar los datos de la encuesta');
+                });
+        }
+
+        function showDetailModal(survey) {
+            const modal = document.getElementById('detailModal');
+            const content = document.getElementById('detailModalContent');
+            
+            content.innerHTML = `
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <h4 class="font-medium text-gray-500 text-xs uppercase">Productor</h4>
+                        <p class="font-medium">${survey.producer_name || 'N/A'}</p>
+                    </div>
+                    <div>
+                        <h4 class="font-medium text-gray-500 text-xs uppercase">Género</h4>
+                        <p>${survey.gender || 'N/A'}</p>
+                    </div>
+                    <div>
+                        <h4 class="font-medium text-gray-500 text-xs uppercase">Edad</h4>
+                        <p>${survey.age || 'N/A'}</p>
+                    </div>
+                    <div>
+                        <h4 class="font-medium text-gray-500 text-xs uppercase">Nivel Educación</h4>
+                        <p>${survey.education_level || 'N/A'}</p>
+                    </div>
+                    <div>
+                        <h4 class="font-medium text-gray-500 text-xs uppercase">Provincia</h4>
+                        <p>${survey.province || 'N/A'}</p>
+                    </div>
+                    <div>
+                        <h4 class="font-medium text-gray-500 text-xs uppercase">Cantón</h4>
+                        <p>${survey.canton || 'N/A'}</p>
+                    </div>
+                    <div>
+                        <h4 class="font-medium text-gray-500 text-xs uppercase">Parroquia</h4>
+                        <p>${survey.parish || 'N/A'}</p>
+                    </div>
+                    <div>
+                        <h4 class="font-medium text-gray-500 text-xs uppercase">Tamaño Finca (ha)</h4>
+                        <p>${survey.farm_size_hectares || 'N/A'}</p>
+                    </div>
+                    
+                    <div class="col-span-2 mt-4">
+                        <h4 class="font-medium text-gray-500 text-xs uppercase border-t pt-2">Dimensión Agronómica</h4>
+                    </div>
+                    <div>
+                        <h4 class="font-medium text-gray-500 text-xs uppercase">Variedades Cacao</h4>
+                        <p>${survey.cacao_varieties || 'N/A'}</p>
+                    </div>
+                    <div>
+                        <h4 class="font-medium text-gray-500 text-xs uppercase">Rendimiento (qq/ha)</h4>
+                        <p>${survey.yield_quintals_per_ha || 'N/A'}</p>
+                    </div>
+                    <div>
+                        <h4 class="font-medium text-gray-500 text-xs uppercase">Usa Fertilizantes</h4>
+                        <p>${survey.use_of_fertilizers || 'N/A'}</p>
+                    </div>
+                    <div>
+                        <h4 class="font-medium text-gray-500 text-xs uppercase">Prácticas Post-Cosecha</h4>
+                        <p>${survey.post_harvest_practices || 'N/A'}</p>
+                    </div>
+                    
+                    <div class="col-span-2 mt-4">
+                        <h4 class="font-medium text-gray-500 text-xs uppercase border-t pt-2">Dimensión Ambiental</h4>
+                    </div>
+                    <div>
+                        <h4 class="font-medium text-gray-500 text-xs uppercase">Cobertura Forestal (%)</h4>
+                        <p>${survey.forest_coverage_percent || 'N/A'}</p>
+                    </div>
+                    <div>
+                        <h4 class="font-medium text-gray-500 text-xs uppercase">Prácticas Conservación</h4>
+                        <p>${survey.conservation_practices || 'N/A'}</p>
+                    </div>
+                    
+                    <div class="col-span-2 mt-4">
+                        <h4 class="font-medium text-gray-500 text-xs uppercase border-t pt-2">Dimensión Socioeconómica</h4>
+                    </div>
+                    <div>
+                        <h4 class="font-medium text-gray-500 text-xs uppercase">Ingreso Total</h4>
+                        <p>${survey.total_income || 'N/A'}</p>
+                    </div>
+                    <div>
+                        <h4 class="font-medium text-gray-500 text-xs uppercase">Ingreso Cacao</h4>
+                        <p>${survey.income_from_cacao || 'N/A'}</p>
+                    </div>
+                    
+                    <div class="col-span-2 mt-4">
+                        <h4 class="font-medium text-gray-500 text-xs uppercase border-t pt-2">Ubicación GPS</h4>
+                    </div>
+                    <div>
+                        <h4 class="font-medium text-gray-500 text-xs uppercase">Latitud</h4>
+                        <p>${survey.gps_latitude || 'N/A'}</p>
+                    </div>
+                    <div>
+                        <h4 class="font-medium text-gray-500 text-xs uppercase">Longitud</h4>
+                        <p>${survey.gps_longitude || 'N/A'}</p>
+                    </div>
+                </div>
+            `;
+            
+            modal.classList.remove('hidden');
+        }
+
+        function closeDetailModal() {
+            document.getElementById('detailModal').classList.add('hidden');
+        }
+
+        function exportCSV() {
+            window.location.href = '/api/reports/excel';
+        }
+
+        function exportExcel() {
+            window.location.href = '/api/reports/excel';
+        }
+
+        // Load initial data
+        loadData();
+    </script>
+
+    <!-- Detail Modal -->
+    <div id="detailModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
+        <div class="relative top-10 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-medium text-cacao-800">Detalle de Encuesta</h3>
+                <button onclick="closeDetailModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+            </div>
+            <div id="detailModalContent" class="max-h-96 overflow-y-auto">
+                <!-- Content loaded dynamically -->
+            </div>
+            <div class="mt-4 flex justify-end">
+                <button onclick="closeDetailModal()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

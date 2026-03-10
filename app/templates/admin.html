@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Diagnóstico Socioambiental Cacaotero</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        cacao: {
+                            50: '#f7f5f0',
+                            100: '#ede8db',
+                            200: '#d9d0b5',
+                            300: '#c0b48a',
+                            400: '#a89860',
+                            500: '#8f7c36',
+                            600: '#725e2c',
+                            700: '#554922',
+                            800: '#393518',
+                            900: '#1c190c',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100">
+    <!-- Sidebar -->
+    <div class="fixed inset-y-0 left-0 w-64 bg-cacao-800 text-white">
+        <div class="p-6">
+            <h1 class="text-xl font-bold">Diagnóstico<br>Cacaotero</h1>
+            <p class="text-xs text-cacao-200 mt-1">Guayas & Los Ríos</p>
+        </div>
+        <nav class="mt-6">
+            <a href="/dashboard" class="flex items-center px-6 py-3 hover:bg-cacao-700 border-l-4 border-transparent">
+                <i class="fas fa-chart-bar w-5"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="/maps" class="flex items-center px-6 py-3 hover:bg-cacao-700 border-l-4 border-transparent">
+                <i class="fas fa-map-marked-alt w-5"></i>
+                <span>Mapas</span>
+            </a>
+            <a href="/tables" class="flex items-center px-6 py-3 hover:bg-cacao-700 border-l-4 border-transparent">
+                <i class="fas fa-table w-5"></i>
+                <span>Datos</span>
+            </a>
+            <a href="/admin" class="flex items-center px-6 py-3 bg-cacao-700 border-l-4 border-white">
+                <i class="fas fa-cog w-5"></i>
+                <span>Admin</span>
+            </a>
+            <a href="/profile" class="flex items-center px-6 py-3 hover:bg-cacao-700 border-l-4 border-transparent">
+                <i class="fas fa-user-circle w-5"></i>
+                <span>Mi Perfil</span>
+            </a>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="ml-64 p-8">
+        <h1 class="text-2xl font-bold text-gray-800 mb-6">Panel de Administración</h1>
+
+        <!-- Tabs -->
+        <div class="mb-6">
+            <div class="border-b border-gray-200">
+                <nav class="-mb-px flex space-x-8">
+                    <button onclick="showAdminTab('overview')" class="admin-tab border-cacao-500 text-cacao-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" data-tab="overview">
+                        Resumen
+                    </button>
+                    <button onclick="showAdminTab('users')" class="admin-tab border-transparent text-gray-500 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" data-tab="users">
+                        Usuarios
+                    </button>
+                    <button onclick="showAdminTab('audit')" class="admin-tab border-transparent text-gray-500 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" data-tab="audit">
+                        Auditoría
+                    </button>
+                    <button onclick="showAdminTab('roles')" class="admin-tab border-transparent text-gray-500 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" data-tab="roles">
+                        Roles y Permisos
+                    </button>
+                    <button onclick="showAdminTab('kobo')" class="admin-tab border-transparent text-gray-500 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" data-tab="kobo">
+                        KoboToolbox
+                    </button>
+                    <button onclick="showAdminTab('sync')" class="admin-tab border-transparent text-gray-500 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" data-tab="sync">
+                        Sincronizaciones
+                    </button>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Overview Tab -->
+        <div id="overview" class="admin-content">
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center">
+                        <div class="p-3 rounded-full bg-blue-100 text-blue-600">
+                            <i class="fas fa-users text-xl"></i>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-500">Total Usuarios</p>
+                            <p id="statTotalUsers" class="text-2xl font-bold text-gray-900">-</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center">
+                        <div class="p-3 rounded-full bg-green-100 text-green-600">
+                            <i class="fas fa-user-check text-xl"></i>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-500">Usuarios Activos</p>
+                            <p id="statActiveUsers" class="text-2xl font-bold text-gray-900">-</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center">
+                        <div class="p-3 rounded-full bg-purple-100 text-purple-600">
+                            <i class="fas fa-database text-xl"></i>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-500">Total Encuestas</p>
+                            <p id="statTotalSurveys" class="text-2xl font-bold text-gray-900">-</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="flex items-center">
+                        <div class="p-3 rounded-full bg-yellow-100 text-yellow-600">
+                            <i class="fas fa-sync text-xl"></i>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-500">Última Sincronización</p>
+                            <p id="statLastSync" class="text-sm font-bold text-gray-900">-</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-medium mb-4">Acciones Rápidas</h3>
+                    <div class="space-y-3">
+                        <button onclick="showAdminTab('users'); loadUsers();" class="w-full flex items-center px-4 py-2 bg-gray-100 rounded hover:bg-gray-200">
+                            <i class="fas fa-user-plus w-6"></i>
+                            <span>Crear Usuario</span>
+                        </button>
+                        <button onclick="showAdminTab('kobo'); triggerSync();" class="w-full flex items-center px-4 py-2 bg-green-100 rounded hover:bg-green-200">
+                            <i class="fas fa-sync w-6"></i>
+                            <span>Sincronizar Datos</span>
+                        </button>
+                        <button onclick="showAdminTab('audit');" class="w-full flex items-center px-4 py-2 bg-blue-100 rounded hover:bg-blue-200">
+                            <i class="fas fa-history w-6"></i>
+                            <span>Ver Auditoría</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-medium mb-4">Distribución de Usuarios</h3>
+                    <div id="userDistribution" class="space-y-3">
+                        <p class="text-gray-500">Cargando...</p>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-medium mb-4">Últimas Acciones</h3>
+                    <div id="recentActions" class="space-y-2">
+                        <p class="text-gray-500">Cargando...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Users Tab -->
+        <div id="users" class="admin-content">
+            <div class="bg-white rounded-lg shadow p-6">
+                <!-- Filtros -->
+                <div class="flex gap-4 mb-4">
+                    <select id="filterRole" onchange="loadUsers()" class="border rounded px-3 py-2">
+                        <option value="">Todos los roles</option>
+                        <option value="admin">Admin</option>
+                        <option value="editor">Editor</option>
+                        <option value="visor">Visor</option>
+                        <option value="analista">Analista</option>
+                        <option value="supervisor">Supervisor</option>
+                        <option value="tecnico">Técnico</option>
+                    </select>
+                    <select id="filterZone" onchange="loadUsers()" class="border rounded px-3 py-2">
+                        <option value="">Todas las zonas</option>
+                        <option value="todas">Todas</option>
+                        <option value="guayas">Guayas</option>
+                        <option value="los_rios">Los Ríos</option>
+                    </select>
+                    <select id="filterActive" onchange="loadUsers()" class="border rounded px-3 py-2">
+                        <option value="">Todos los estados</option>
+                        <option value="true">Activos</option>
+                        <option value="false">Inactivos</option>
+                    </select>
+                </div>
+
+                <div class="flex justify-between mb-4">
+                    <h2 class="text-lg font-medium">Gestión de Usuarios</h2>
+                    <button onclick="showUserModal()" class="px-4 py-2 bg-cacao-600 text-white rounded hover:bg-cacao-700">
+                        <i class="fas fa-plus mr-2"></i>Nuevo Usuario
+                    </button>
+                </div>
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rol</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Zona</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Último Login</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody" class="bg-white divide-y divide-gray-200">
+                        <tr>
+                            <td colspan="7" class="px-6 py-4 text-center text-gray-500">Cargando...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Audit Tab -->
+        <div id="audit" class="admin-content hidden">
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex gap-4 mb-4">
+                    <select id="auditAction" onchange="loadAuditLogs()" class="border rounded px-3 py-2">
+                        <option value="">Todas las acciones</option>
+                        <option value="login_success">Login exitoso</option>
+                        <option value="login_failed">Login fallido</option>
+                        <option value="user_create">Crear usuario</option>
+                        <option value="user_update">Actualizar usuario</option>
+                        <option value="user_activate">Activar usuario</option>
+                        <option value="user_deactivate">Desactivar usuario</option>
+                        <option value="password_change">Cambio contraseña</option>
+                    </select>
+                </div>
+                <h2 class="text-lg font-medium mb-4">Log de Auditoría</h2>
+                <div class="flex justify-end mb-4">
+                    <button onclick="exportAuditLogs()" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                        <i class="fas fa-download mr-2"></i>Exportar CSV
+                    </button>
+                </div>
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Usuario</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acción</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Entidad</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Detalles</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">IP</th>
+                        </tr>
+                    </thead>
+                    <tbody id="auditTableBody" class="bg-white divide-y divide-gray-200">
+                        <tr>
+                            <td colspan="6" class="px-6 py-4 text-center text-gray-500">Cargando...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Roles Tab -->
+        <div id="roles" class="admin-content hidden">
+            <!-- Matriz de Permisos -->
+            <div class="bg-white rounded-lg shadow p-6 mb-6">
+                <h2 class="text-lg font-medium mb-4">Matriz de Permisos por Rol</h2>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full border" id="rolesMatrixTable">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-2 text-left text-sm font-medium text-gray-700 border-b">Permiso</th>
+                                <th class="px-4 py-2 text-center text-sm font-medium text-cacao-600 border-b">Admin</th>
+                                <th class="px-4 py-2 text-center text-sm font-medium text-blue-600 border-b">Editor</th>
+                                <th class="px-4 py-2 text-center text-sm font-medium text-green-600 border-b">Visor</th>
+                                <th class="px-4 py-2 text-center text-sm font-medium text-indigo-600 border-b">Analista</th>
+                                <th class="px-4 py-2 text-center text-sm font-medium text-teal-600 border-b">Supervisor</th>
+                                <th class="px-4 py-2 text-center text-sm font-medium text-gray-600 border-b">Técnico</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rolesMatrixBody" class="text-sm">
+                            <tr><td colspan="7" class="px-4 py-4 text-center text-gray-500">Cargando...</td></tr>
+                    </tbody>
+                </table>
+                <!-- Pagination -->
+                <div class="mt-4 flex items-center justify-between">
+                    <div class="text-sm text-gray-500" id="usersPaginationInfo">Mostrando página 1</div>
+                    <div class="flex gap-2">
+                        <button onclick="changeUsersPage(-1)" id="usersPrevBtn" class="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50" disabled>Anterior</button>
+                        <button onclick="changeUsersPage(1)" id="usersNextBtn" class="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50" disabled>Siguiente</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+            <!-- Resumen de Roles -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-lg font-medium mb-4">Resumen de Roles</h2>
+                <div id="rolesContent" class="grid grid-cols-3 gap-4">
+                    <div class="text-gray-500">Cargando...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Kobo Tab -->
+        <div id="kobo" class="admin-content hidden">
+            <!-- Configuración -->
+            <div class="bg-white rounded-lg shadow p-6 mb-6">
+                <h2 class="text-lg font-medium mb-4">Configuración de KoboToolbox</h2>
+                <div id="koboConfigContent">
+                    <div class="grid grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">URL de Instancia</label>
+                            <input type="text" id="koboInstanceUrl" class="w-full border rounded px-3 py-2" placeholder="https://kf.kobotoolbox.org">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Token API</label>
+                            <input type="password" id="koboApiToken" class="w-full border rounded px-3 py-2" placeholder="Token de API">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Asset UIDs (separados por coma)</label>
+                            <input type="text" id="koboAssetUids" class="w-full border rounded px-3 py-2" placeholder="UID1, UID2, ...">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Intervalo de Sincronización (horas)</label>
+                            <input type="number" id="koboSyncInterval" class="w-full border rounded px-3 py-2" value="0">
+                        </div>
+                    </div>
+                    <div class="mt-4 flex gap-2">
+                        <button onclick="loadKoboConfig()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
+                            <i class="fas fa-sync mr-2"></i>Recargar
+                        </button>
+                        <button onclick="saveKoboConfig()" class="px-4 py-2 bg-cacao-600 text-white rounded hover:bg-cacao-700">
+                            <i class="fas fa-save mr-2"></i>Guardar Configuración
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sincronización e Importación -->
+            <div class="grid grid-cols-2 gap-6 mb-6">
+                <!-- Sync Manual -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h2 class="text-lg font-medium mb-4">Sincronización con KoboToolbox</h2>
+                    <p class="text-sm text-gray-600 mb-4">Sincroniza datos directamente desde la API de KoboToolbox usando el asset configurado.</p>
+                    <button onclick="triggerSync()" id="syncButton" class="w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                        <i class="fas fa-cloud-download-alt mr-2"></i>Sincronizar Ahora
+                    </button>
+                    <div id="syncStatus" class="mt-4 hidden">
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <span id="syncStatusText">Sincronizando...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Upload de Archivo -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h2 class="text-lg font-medium mb-4">Importar Archivo</h2>
+                    <p class="text-sm text-gray-600 mb-4">Importa datos desde un archivo CSV o Excel exportado de KoboToolbox.</p>
+                    <form id="uploadForm" onsubmit="uploadFile(event)" class="space-y-4">
+                        <div>
+                            <input type="file" id="koboFile" accept=".csv,.xlsx" class="w-full border rounded px-3 py-2" required>
+                        </div>
+                        <button type="submit" id="uploadButton" class="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                            <i class="fas fa-file-import mr-2"></i>Importar Archivo
+                        </button>
+                    </form>
+                    <div id="uploadStatus" class="mt-4 hidden">
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <span id="uploadStatusText">Importando...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mapeos de Campos -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-medium">Mapeos de Campos</h2>
+                    <button onclick="seedMappings()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                        <i class="fas fa-database mr-2"></i>Cargar Mapeos por Defecto
+                    </button>
+                </div>
+                <div id="mappingsContent" class="max-h-96 overflow-y-auto">
+                    <p class="text-gray-500">Cargando mapeos...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sync Tab -->
+        <div id="sync" class="admin-content hidden">
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex justify-between mb-4">
+                    <h2 class="text-lg font-medium">Historial de Sincronizaciones</h2>
+                    <button onclick="triggerSync()" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                        <i class="fas fa-sync mr-2"></i>Sincronizar Ahora
+                    </button>
+                </div>
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Registros</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="syncTableBody" class="bg-white divide-y divide-gray-200">
+                        <tr>
+                            <td colspan="4" class="px-6 py-4 text-center text-gray-500">Cargando...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Modal -->
+    <div id="userModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-medium" id="userModalTitle">Nuevo Usuario</h3>
+                <button onclick="closeUserModal()" class="text-gray-500 hover:text-gray-700">&times;</button>
+            </div>
+            <form id="userForm" onsubmit="saveUser(event)">
+                <input type="hidden" id="userId">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <input type="email" id="userEmail" required class="w-full border rounded px-3 py-2">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Nombre Completo</label>
+                    <input type="text" id="userFullName" required class="w-full border rounded px-3 py-2">
+                </div>
+                <div class="mb-4" id="passwordField">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
+                    <input type="password" id="userPassword" class="w-full border rounded px-3 py-2">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Rol</label>
+                    <select id="userRole" required class="w-full border rounded px-3 py-2">
+                        <option value="visor">Visor</option>
+                        <option value="tecnico">Técnico</option>
+                        <option value="analista">Analista</option>
+                        <option value="supervisor">Supervisor</option>
+                        <option value="editor">Editor</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Zona</label>
+                    <select id="userZone" required class="w-full border rounded px-3 py-2">
+                        <option value="todas">Todas</option>
+                        <option value="guayas">Guayas</option>
+                        <option value="los_rios">Los Ríos</option>
+                    </select>
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="closeUserModal()" class="px-4 py-2 border rounded hover:bg-gray-50">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-cacao-600 text-white rounded hover:bg-cacao-700">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function showAdminTab(tabName) {
+            document.querySelectorAll('.admin-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(tabName).classList.remove('hidden');
+
+            document.querySelectorAll('.admin-tab').forEach(btn => {
+                btn.classList.remove('border-cacao-500', 'text-cacao-600');
+                btn.classList.add('border-transparent', 'text-gray-500');
+            });
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('border-cacao-500', 'text-cacao-600');
+
+            if (tabName === 'users') loadUsers();
+            if (tabName === 'audit') loadAuditLogs();
+            if (tabName === 'roles') loadRoles();
+            if (tabName === 'sync') loadSyncLogs();
+            if (tabName === 'kobo') {
+                loadKoboConfig();
+                loadMappings();
+            }
+            if (tabName === 'overview') loadOverview();
+        }
+
+        async function loadOverview() {
+            try {
+                // Cargar estadísticas de usuarios
+                const usersRes = await fetch('/api/auth/users?per_page=100');
+                const usersData = await usersRes.json();
+                
+                const totalUsers = usersData.total || 0;
+                const activeUsers = usersData.items.filter(u => u.is_active).length;
+                
+                document.getElementById('statTotalUsers').textContent = totalUsers;
+                document.getElementById('statActiveUsers').textContent = activeUsers;
+
+                // Distribución por rol
+                const roleCounts = {};
+                usersData.items.forEach(u => {
+                    roleCounts[u.role] = (roleCounts[u.role] || 0) + 1;
+                });
+                
+                const roleColors = {
+                    admin: 'bg-red-500',
+                    editor: 'bg-blue-500',
+                    visor: 'bg-green-500',
+                    analista: 'bg-purple-500',
+                    supervisor: 'bg-yellow-500',
+                    tecnico: 'bg-gray-500'
+                };
+
+                document.getElementById('userDistribution').innerHTML = Object.entries(roleCounts).map(([role, count]) => `
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm capitalize">${role}</span>
+                        <span class="px-2 py-1 text-xs rounded ${roleColors[role] || 'bg-gray-500'} text-white">${count}</span>
+                    </div>
+                `).join('') || '<p class="text-gray-500">No hay usuarios</p>';
+
+                // Cargar total de encuestas
+                const surveysRes = await fetch('/api/data/surveys?per_page=1');
+                const surveysData = await surveysRes.json();
+                document.getElementById('statTotalSurveys').textContent = surveysData.total || 0;
+
+                // Última sincronización
+                const syncRes = await fetch('/api/kobo/sync/history?limit=1');
+                const syncData = await syncRes.json();
+                
+                if (syncData.items && syncData.items.length > 0) {
+                    const lastSync = new Date(syncData.items[0].started_at);
+                    document.getElementById('statLastSync').textContent = lastSync.toLocaleString();
+                } else {
+                    document.getElementById('statLastSync').textContent = 'Nunca';
+                }
+
+                // Últimas acciones de auditoría
+                const auditRes = await fetch('/api/auth/audit?per_page=5');
+                const auditData = await auditRes.json();
+                
+                document.getElementById('recentActions').innerHTML = auditData.items.map(log => `
+                    <div class="flex items-center text-sm">
+                        <span class="w-2 h-2 rounded-full ${log.action.includes('success') ? 'bg-green-500' : 'bg-blue-500'} mr-2"></span>
+                        <span class="text-gray-600 flex-1">${log.action}</span>
+                        <span class="text-gray-400 text-xs">${new Date(log.created_at).toLocaleTimeString()}</span>
+                    </div>
+                `).join('') || '<p class="text-gray-500">No hay acciones recientes</p>';
+
+            } catch (error) {
+                console.error('Error loading overview:', error);
+            }
+        }
+
+        // Pagination state
+        let usersPage = 1;
+        let usersTotal = 0;
+        let usersPerPage = 10;
+
+        async function loadUsers() {
+            try {
+                const role = document.getElementById('filterRole').value;
+                const zone = document.getElementById('filterZone').value;
+                const isActive = document.getElementById('filterActive').value;
+
+                let url = `/api/auth/users?page=${usersPage}&per_page=${usersPerPage}`;
+                if (role) url += `&role=${role}`;
+                if (zone) url += `&zone=${zone}`;
+                if (isActive) url += `&is_active=${isActive}`;
+
+                const response = await fetch(url);
+                const data = await response.json();
+                const tbody = document.getElementById('usersTableBody');
+                
+                usersTotal = data.total;
+
+                if (data.items.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-4 text-center text-gray-500">No hay usuarios</td></tr>';
+                    updateUsersPagination();
+                    return;
+                }
+
+                tbody.innerHTML = data.items.map(user => `
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap">${user.email}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">${user.full_name}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 py-1 text-xs rounded ${getRoleClass(user.role)}">${user.role}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 py-1 text-xs rounded ${getZoneClass(user.zone)}">${getZoneLabel(user.zone)}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 py-1 text-xs rounded ${user.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">${user.is_active ? 'Activo' : 'Inactivo'}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${user.last_login ? new Date(user.last_login).toLocaleString() : 'Nunca'}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <button onclick="editUser(${user.id})" class="text-blue-600 hover:text-blue-800 mr-3"><i class="fas fa-edit"></i></button>
+                            ${user.is_active ?
+                                `<button onclick="deactivateUser(${user.id})" class="text-red-600 hover:text-red-800" title="Desactivar"><i class="fas fa-user-slash"></i></button>` :
+                                `<button onclick="activateUser(${user.id})" class="text-green-600 hover:text-green-800" title="Activar"><i class="fas fa-user-check"></i></button>`
+                            }
+                            <button onclick="resetPassword(${user.id})" class="text-yellow-600 hover:text-yellow-800 ml-3" title="Resetear contraseña"><i class="fas fa-key"></i></button>
+                        </td>
+                    </tr>
+                `).join('');
+                
+                updateUsersPagination();
+            } catch (error) {
+                console.error('Error loading users:', error);
+            }
+        }
+
+        function updateUsersPagination() {
+            const totalPages = Math.ceil(usersTotal / usersPerPage);
+            document.getElementById('usersPaginationInfo').textContent = 
+                `Mostrando página ${usersPage} de ${totalPages} (${usersTotal} usuarios)`;
+            
+            document.getElementById('usersPrevBtn').disabled = usersPage <= 1;
+            document.getElementById('usersNextBtn').disabled = usersPage >= totalPages;
+        }
+
+        function changeUsersPage(delta) {
+            usersPage += delta;
+            loadUsers();
+        }
+
+        function getRoleClass(role) {
+            const classes = {
+                'admin': 'bg-purple-100 text-purple-800',
+                'editor': 'bg-blue-100 text-blue-800',
+                'analista': 'bg-indigo-100 text-indigo-800',
+                'supervisor': 'bg-teal-100 text-teal-800',
+                'tecnico': 'bg-gray-100 text-gray-800',
+                'visor': 'bg-gray-100 text-gray-600'
+            };
+            return classes[role] || 'bg-gray-100 text-gray-800';
+        }
+
+        function getZoneClass(zone) {
+            return zone === 'todas' ? 'bg-blue-100 text-blue-800' :
+                   zone === 'guayas' ? 'bg-green-100 text-green-800' :
+                   'bg-orange-100 text-orange-800';
+        }
+
+        function getZoneLabel(zone) {
+            return zone === 'todas' ? 'Todas' :
+                   zone === 'guayas' ? 'Guayas' :
+                   zone === 'los_rios' ? 'Los Ríos' : zone;
+        }
+
+        async function loadAuditLogs() {
+            try {
+                const action = document.getElementById('auditAction').value;
+                let url = '/api/auth/audit?';
+                if (action) url += `action=${action}&`;
+
+                const response = await fetch(url);
+                const data = await response.json();
+                const tbody = document.getElementById('auditTableBody');
+
+                if (data.items.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">No hay registros</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = data.items.map(log => `
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">${new Date(log.created_at).toLocaleString()}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">${log.user_id || '-'}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 py-1 text-xs rounded ${getActionClass(log.action)}">${log.action}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">${log.entity_type || '-'} ${log.entity_id ? '#' + log.entity_id : ''}</td>
+                        <td class="px-6 py-4 text-sm max-w-xs truncate" title="${log.details || ''}">${log.details || '-'}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${log.ip_address || '-'}</td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading audit logs:', error);
+            }
+        }
+
+        async function exportAuditLogs() {
+            try {
+                const action = document.getElementById('auditAction').value;
+                let url = '/api/auth/audit?per_page=1000';
+                if (action) url += `&action=${action}`;
+
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.items.length === 0) {
+                    alert('No hay datos para exportar');
+                    return;
+                }
+
+                // Crear CSV
+                const headers = ['Fecha', 'Usuario ID', 'Acción', 'Entidad', 'Detalles', 'IP'];
+                const rows = data.items.map(log => [
+                    new Date(log.created_at).toISOString(),
+                    log.user_id || '',
+                    log.action,
+                    log.entity_type ? `${log.entity_type} #${log.entity_id}` : '',
+                    (log.details || '').replace(/"/g, '""'),
+                    log.ip_address || ''
+                ]);
+
+                const csvContent = [
+                    headers.join(','),
+                    ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+                ].join('\n');
+
+                // Descargar archivo
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `audit_logs_${new Date().toISOString().split('T')[0]}.csv`;
+                link.click();
+            } catch (error) {
+                console.error('Error exporting audit logs:', error);
+                alert('Error al exportar logs de auditoría');
+            }
+        }
+
+        function getActionClass(action) {
+            if (action.includes('login')) return 'bg-blue-100 text-blue-800';
+            if (action.includes('create')) return 'bg-green-100 text-green-800';
+            if (action.includes('update')) return 'bg-yellow-100 text-yellow-800';
+            if (action.includes('delete') || action.includes('deactivate')) return 'bg-red-100 text-red-800';
+            return 'bg-gray-100 text-gray-800';
+        }
+
+        async function loadRoles() {
+            try {
+                const response = await fetch('/api/auth/roles');
+                const roles = await response.json();
+
+                const response2 = await fetch('/api/auth/me/permissions');
+                const permissionsData = await response2;
+                const allPermissions = permissionsData.all_permissions;
+
+                // Llenar matriz de permisos
+                const matrixBody = document.getElementById('rolesMatrixBody');
+                const roleNames = ['admin', 'editor', 'analista', 'supervisor', 'tecnico', 'visor'];
+
+                // Obtener lista de todos los permisos
+                const allPerms = Object.keys(allPermissions);
+
+                matrixBody.innerHTML = allPerms.map(perm => {
+                    const permLabel = perm.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                    return `
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-2 border-b font-medium">${permLabel}</td>
+                            ${roleNames.map(roleName => {
+                                const role = roles.find(r => r.name === roleName);
+                                const hasPerm = role && role.permissions.includes(perm);
+                                return `<td class="px-4 py-2 border-b text-center">
+                                    <span class="${hasPerm ? 'text-green-600' : 'text-gray-300'}">
+                                        <i class="fas fa-${hasPerm ? 'check' : 'times'}"></i>
+                                    </span>
+                                </td>`;
+                            }).join('')}
+                        </tr>
+                    `;
+                }).join('');
+
+                // Llenar descripción de permisos
+                const container = document.getElementById('rolesContent');
+                container.innerHTML = roles.map(role => {
+                    const colorClass = {
+                        'admin': 'bg-purple-100 border-purple-300',
+                        'editor': 'bg-blue-100 border-blue-300',
+                        'analista': 'bg-indigo-100 border-indigo-300',
+                        'supervisor': 'bg-teal-100 border-teal-300',
+                        'tecnico': 'bg-gray-100 border-gray-300',
+                        'visor': 'bg-gray-50 border-gray-200'
+                    }[role.name] || 'bg-gray-100';
+
+                    return `
+                        <div class="border rounded p-4 ${colorClass}">
+                            <h3 class="font-medium text-lg mb-2 capitalize flex items-center gap-2">
+                                <i class="fas fa-user-tag"></i> ${role.name}
+                                <span class="text-sm font-normal text-gray-600">(${role.permissions.length} permisos)</span>
+                            </h3>
+                            <div class="flex flex-wrap gap-1">
+                                ${role.permissions.map(p => `<span class="px-2 py-1 text-xs bg-white rounded border">${p.replace(/_/g, ' ')}</span>`).join('')}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (error) {
+                console.error('Error loading roles:', error);
+            }
+        }
+
+        async function loadSyncLogs() {
+            try {
+                const response = await fetch('/api/kobo/status');
+                const logs = await response.json();
+                const tbody = document.getElementById('syncTableBody');
+                tbody.innerHTML = logs.map(log => `
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap">${new Date(log.started_at).toLocaleString()}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">${log.sync_type}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">${log.records_synced}</td>
+                        <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 py-1 text-xs rounded ${log.status === 'success' ? 'bg-green-100 text-green-800' : log.status === 'failed' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}">${log.status}</span></td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading sync logs:', error);
+            }
+        }
+
+        function showUserModal() {
+            document.getElementById('userModalTitle').textContent = 'Nuevo Usuario';
+            document.getElementById('userForm').reset();
+            document.getElementById('userId').value = '';
+            document.getElementById('passwordField').style.display = 'block';
+            document.getElementById('userPassword').required = true;
+            document.getElementById('userModal').classList.remove('hidden');
+        }
+
+        function closeUserModal() {
+            document.getElementById('userModal').classList.add('hidden');
+        }
+
+        async function editUser(userId) {
+            try {
+                const response = await fetch(`/api/auth/users/${userId}`);
+                const user = await response.json();
+
+                document.getElementById('userModalTitle').textContent = 'Editar Usuario';
+                document.getElementById('userId').value = user.id;
+                document.getElementById('userEmail').value = user.email;
+                document.getElementById('userFullName').value = user.full_name;
+                document.getElementById('userRole').value = user.role;
+                document.getElementById('userZone').value = user.zone;
+                document.getElementById('passwordField').style.display = 'none';
+                document.getElementById('userPassword').required = false;
+                document.getElementById('userModal').classList.remove('hidden');
+            } catch (error) {
+                alert('Error al cargar usuario');
+            }
+        }
+
+        async function saveUser(event) {
+            event.preventDefault();
+
+            const userId = document.getElementById('userId').value;
+            const data = {
+                email: document.getElementById('userEmail').value,
+                full_name: document.getElementById('userFullName').value,
+                role: document.getElementById('userRole').value,
+                zone: document.getElementById('userZone').value
+            };
+
+            const password = document.getElementById('userPassword').value;
+            if (password) data.password = password;
+
+            try {
+                const url = userId ? `/api/auth/users/${userId}` : '/api/auth/register';
+                const method = userId ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    closeUserModal();
+                    loadUsers();
+                    alert(userId ? 'Usuario actualizado' : 'Usuario creado');
+                } else {
+                    const error = await response.json();
+                    alert(error.detail || 'Error al guardar');
+                }
+            } catch (error) {
+                alert('Error al guardar usuario');
+            }
+        }
+
+        async function deactivateUser(userId) {
+            if (!confirm('¿Desactivar este usuario?')) return;
+            try {
+                await fetch(`/api/auth/users/${userId}`, { method: 'DELETE' });
+                loadUsers();
+            } catch (error) {
+                alert('Error al desactivar usuario');
+            }
+        }
+
+        async function activateUser(userId) {
+            try {
+                await fetch(`/api/auth/users/${userId}/activate`, { method: 'POST' });
+                loadUsers();
+            } catch (error) {
+                alert('Error al activar usuario');
+            }
+        }
+
+        async function resetPassword(userId) {
+            const newPassword = prompt('Nueva contraseña (mínimo 6 caracteres):');
+            if (!newPassword || newPassword.length < 6) {
+                alert('La contraseña debe tener al menos 6 caracteres');
+                return;
+            }
+            try {
+                await fetch(`/api/auth/users/${userId}/reset-password?new_password=${encodeURIComponent(newPassword)}`, {
+                    method: 'POST'
+                });
+                alert('Contraseña reseteada');
+            } catch (error) {
+                alert('Error al resetear contraseña');
+            }
+        }
+
+        async function triggerSync() {
+            const btn = document.getElementById('syncButton');
+            const status = document.getElementById('syncStatus');
+            const statusText = document.getElementById('syncStatusText');
+
+            btn.disabled = true;
+            btn.classList.add('opacity-50');
+            status.classList.remove('hidden');
+            statusText.textContent = 'Sincronizando con KoboToolbox...';
+
+            try {
+                const response = await fetch('/api/kobo/sync', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    statusText.textContent = data.message || 'Sincronización completada';
+                    status.className = 'mt-4 text-green-600';
+                    loadSyncLogs();
+                } else {
+                    statusText.textContent = data.detail || 'Error en sincronización';
+                    status.className = 'mt-4 text-red-600';
+                }
+            } catch (error) {
+                statusText.textContent = 'Error de conexión: ' + error.message;
+                status.className = 'mt-4 text-red-600';
+            } finally {
+                btn.disabled = false;
+                btn.classList.remove('opacity-50');
+            }
+        }
+
+        async function uploadFile(event) {
+            event.preventDefault();
+
+            const fileInput = document.getElementById('koboFile');
+            const btn = document.getElementById('uploadButton');
+            const status = document.getElementById('uploadStatus');
+            const statusText = document.getElementById('uploadStatusText');
+
+            if (!fileInput.files[0]) {
+                alert('Por favor seleccione un archivo');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            btn.disabled = true;
+            btn.classList.add('opacity-50');
+            status.classList.remove('hidden');
+            statusText.textContent = 'Importando archivo...';
+
+            try {
+                const response = await fetch('/api/kobo/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    statusText.textContent = data.message || 'Importación completada';
+                    status.className = 'mt-4 text-green-600';
+                    fileInput.value = '';
+                    loadSyncLogs();
+                } else {
+                    statusText.textContent = data.detail || 'Error en importación';
+                    status.className = 'mt-4 text-red-600';
+                }
+            } catch (error) {
+                statusText.textContent = 'Error de conexión: ' + error.message;
+                status.className = 'mt-4 text-red-600';
+            } finally {
+                btn.disabled = false;
+                btn.classList.remove('opacity-50');
+            }
+        }
+
+        async function loadKoboConfig() {
+            try {
+                const response = await fetch('/api/kobo/config');
+                const config = await response.json();
+
+                document.getElementById('koboInstanceUrl').value = config.instance_url || '';
+                document.getElementById('koboAssetUids').value = (config.asset_uids || []).join(', ');
+                document.getElementById('koboSyncInterval').value = config.sync_interval_hours || 0;
+            } catch (error) {
+                console.error('Error loading Kobo config:', error);
+            }
+        }
+
+        async function loadMappings() {
+            try {
+                const response = await fetch('/api/kobo/mappings');
+                const mappings = await response.json();
+
+                const container = document.getElementById('mappingsContent');
+
+                if (mappings.length === 0) {
+                    container.innerHTML = '<p class="text-gray-500">No hay mapeos configurados</p>';
+                    return;
+                }
+
+                // Agrupar por categoría
+                const grouped = mappings.reduce((acc, m) => {
+                    if (!acc[m.category]) acc[m.category] = [];
+                    acc[m.category].push(m);
+                    return acc;
+                }, {});
+
+                container.innerHTML = Object.entries(grouped).map(([category, fields]) => `
+                    <div class="mb-4">
+                        <h3 class="font-medium text-cacao-700 capitalize mb-2">${category}</h3>
+                        <table class="min-w-full text-sm">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-3 py-2 text-left">Campo Kobo</th>
+                                    <th class="px-3 py-2 text-left">Campo Interno</th>
+                                    <th class="px-3 py-2 text-left">Tipo</th>
+                                    <th class="px-3 py-2 text-center">Activo</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y">
+                                ${fields.map(m => `
+                                    <tr>
+                                        <td class="px-3 py-2 font-mono text-xs">${m.kobo_field_name}</td>
+                                        <td class="px-3 py-2 font-mono text-xs">${m.internal_field_name}</td>
+                                        <td class="px-3 py-2 text-gray-500">${m.field_type}</td>
+                                        <td class="px-3 py-2 text-center">
+                                            <span class="px-2 py-1 text-xs rounded ${m.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                                ${m.is_active ? 'Sí' : 'No'}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading mappings:', error);
+                document.getElementById('mappingsContent').innerHTML = '<p class="text-red-500">Error al cargar mapeos</p>';
+            }
+        }
+
+        function saveKoboConfig() {
+            alert('La configuración de KoboToolbox se gestiona a través de variables de entorno. Para modificarla, actualice el archivo .env y reinicie la aplicación.');
+        }
+
+        // Load initial data
+        loadOverview();
+        loadUsers();
+        loadSyncLogs();
+    </script>
+</body>
+</html>

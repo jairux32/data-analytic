@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapas - Diagnóstico Socioambiental Cacaotero</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        cacao: {
+                            50: '#f7f5f0',
+                            100: '#ede8db',
+                            200: '#d9d0b5',
+                            300: '#c0b48a',
+                            400: '#a89860',
+                            500: '#8f7c36',
+                            600: '#725e2c',
+                            700: '#554922',
+                            800: '#393518',
+                            900: '#1c190c',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body class="bg-gray-100">
+    <!-- Sidebar -->
+    <div class="fixed inset-y-0 left-0 w-64 bg-cacao-800 text-white">
+        <div class="p-6">
+            <h1 class="text-xl font-bold">Diagnóstico<br>Cacaotero</h1>
+            <p class="text-xs text-cacao-200 mt-1">Guayas & Los Ríos</p>
+        </div>
+        <nav class="mt-6">
+            <a href="/dashboard" class="flex items-center px-6 py-3 hover:bg-cacao-700 border-l-4 border-transparent">
+                <i class="fas fa-chart-bar w-5"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="/maps" class="flex items-center px-6 py-3 bg-cacao-700 border-l-4 border-white">
+                <i class="fas fa-map-marked-alt w-5"></i>
+                <span>Mapas</span>
+            </a>
+            <a href="/tables" class="flex items-center px-6 py-3 hover:bg-cacao-700 border-l-4 border-transparent">
+                <i class="fas fa-table w-5"></i>
+                <span>Datos</span>
+            </a>
+            {% if user.role == 'admin' %}
+            <a href="/admin" class="flex items-center px-6 py-3 hover:bg-cacao-700 border-l-4 border-transparent">
+                <i class="fas fa-cog w-5"></i>
+                <span>Admin</span>
+            </a>
+            {% endif %}
+            <a href="/profile" class="flex items-center px-6 py-3 hover:bg-cacao-700 border-l-4 border-transparent">
+                <i class="fas fa-user-circle w-5"></i>
+                <span>Mi Perfil</span>
+            </a>
+        </nav>
+        <div class="absolute bottom-0 w-full p-6">
+            <div class="flex items-center">
+                <div class="w-8 h-8 rounded-full bg-cacao-500 flex items-center justify-center">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-medium">{{ user.full_name }}</p>
+                    <p class="text-xs text-cacao-200">{{ user.role }}</p>
+                </div>
+            </div>
+            <button onclick="logout()" class="mt-4 w-full text-left text-sm text-cacao-200 hover:text-white">
+                <i class="fas fa-sign-out-alt mr-2"></i>Cerrar Sesión
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="ml-64 p-8">
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-800">Mapas Geoespaciales</h1>
+                <p class="text-gray-600">Ubicación de productores encuestados</p>
+            </div>
+            <div class="flex space-x-4">
+                <select id="provinceFilter" class="px-4 py-2 border rounded-lg">
+                    <option value="">Todas las Provincias</option>
+                    <option value="Guayas">Guayas</option>
+                    <option value="Los Ríos">Los Ríos</option>
+                </select>
+                <button onclick="exportMap()" class="px-4 py-2 bg-cacao-600 text-white rounded-lg hover:bg-cacao-700">
+                    <i class="fas fa-download mr-2"></i>Exportar
+                </button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-4 gap-6">
+            <!-- Filters Sidebar -->
+            <div class="col-span-1">
+                <div class="bg-white rounded-lg shadow p-4">
+                    <h3 class="font-medium mb-4">Capas del Mapa</h3>
+                    <div class="space-y-2">
+                        <label class="flex items-center">
+                            <input type="radio" name="layerType" value="points" checked class="mr-2">
+                            Puntos de Encuestas
+                        </label>
+                        <label class="flex items-center">
+                            <input type="radio" name="layerType" value="heatmap" class="mr-2">
+                            Mapa de Calor
+                        </label>
+                    </div>
+
+                    <h3 class="font-medium mt-6 mb-4">Leyenda</h3>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex items-center">
+                            <span class="w-4 h-4 rounded-full bg-cacao-600 mr-2"></span>
+                            Productor Masculino
+                        </div>
+                        <div class="flex items-center">
+                            <span class="w-4 h-4 rounded-full bg-pink-500 mr-2"></span>
+                            Productora Femenina
+                        </div>
+                    </div>
+
+                    <h3 class="font-medium mt-6 mb-4">Estadísticas</h3>
+                    <div class="text-sm">
+                        <p>Total de puntos: <span id="totalPoints" class="font-bold">0</span></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Map -->
+            <div class="col-span-3">
+                <div id="map" class="bg-white rounded-lg shadow" style="height: 600px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let map;
+        let markersLayer;
+        let heatmapLayer;
+
+        function initMap() {
+            // Center on Ecuador - Guayas/Los Ríos area
+            map = L.map('map').setView([-1.8, -79.5], 8);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            markersLayer = L.layerGroup().addTo(map);
+            loadMapData();
+        }
+
+        async function loadMapData() {
+            const province = document.getElementById('provinceFilter').value;
+            const params = province ? `?province=${province}` : '';
+
+            try {
+                const response = await fetch(`/api/maps/points${params}`);
+                const data = await response.json();
+
+                // Clear existing markers
+                markersLayer.clearLayers();
+
+                // Add markers
+                data.points.forEach(point => {
+                    const color = point.gender === 'femenino' ? '#ec4899' : '#8f7c36';
+
+                    const marker = L.circleMarker([point.lat, point.lon], {
+                        radius: 8,
+                        fillColor: color,
+                        color: '#fff',
+                        weight: 2,
+                        opacity: 1,
+                        fillOpacity: 0.8
+                    });
+
+                    marker.bindPopup(`
+                        <strong>${point.producer_name || 'Productor'}</strong><br>
+                        Provincia: ${point.province || 'N/A'}<br>
+                        Cantón: ${point.canton || 'N/A'}<br>
+                        Hectáreas: ${point.farm_size || 'N/A'}<br>
+                        Variedad: ${point.variety || 'N/A'}
+                    `);
+
+                    markersLayer.addLayer(marker);
+                });
+
+                document.getElementById('totalPoints').textContent = data.total;
+
+                // Fit bounds to markers
+                if (data.points.length > 0) {
+                    const bounds = L.latLngBounds(data.points.map(p => [p.lat, p.lon]));
+                    map.fitBounds(bounds);
+                }
+
+            } catch (error) {
+                console.error('Error loading map data:', error);
+            }
+        }
+
+        function exportMap() {
+            alert('Funcionalidad de exportación en desarrollo');
+        }
+
+        document.getElementById('provinceFilter').addEventListener('change', loadMapData);
+
+        // Initialize map when page loads
+        window.addEventListener('load', initMap);
+    </script>
+</body>
+</html>

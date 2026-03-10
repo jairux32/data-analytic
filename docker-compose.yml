@@ -1,0 +1,83 @@
+version: '3.8'
+
+services:
+  # PostgreSQL with PostGIS
+  postgres:
+    image: postgis/postgis:15-3.4
+    container_name: kobo_cacao_postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-kobo_cacao}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-kobo_cacao_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-kobo_cacao_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-kobo_cacao}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - kobo_cacao_network
+
+  # Redis for caching
+  redis:
+    image: redis:7-alpine
+    container_name: kobo_cacao_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - kobo_cacao_network
+
+  # FastAPI Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: kobo_cacao_app
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-kobo_cacao}:${POSTGRES_PASSWORD:-kobo_cacao_pass}@postgres:5432/${POSTGRES_DB:-kobo_cacao_db}
+      - REDIS_URL=redis://redis:6379/0
+      - KOBO_API_TOKEN=${KOBO_API_TOKEN}
+      - KOBO_INSTANCE_URL=${KOBO_INSTANCE_URL:-https://kf.kobotoolbox.org}
+      - SECRET_KEY=${SECRET_KEY}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+      - REFRESH_TOKEN_EXPIRE_DAYS=${REFRESH_TOKEN_EXPIRE_DAYS:-7}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./app:/app/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - kobo_cacao_network
+
+  # Nginx reverse proxy (optional for production)
+  nginx:
+    image: nginx:alpine
+    container_name: kobo_cacao_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - app
+    networks:
+      - kobo_cacao_network
+    profiles:
+      - production
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  kobo_cacao_network:
+    driver: bridge
