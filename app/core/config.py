@@ -73,23 +73,22 @@ class Settings(BaseSettings):
         
         Railway proporciona estas variables automáticamente.
         """
-        # Database URL - prioridad: variables individuales de Railway > DATABASE_URL > local
+        # Database URL - Primera prioridad: Variable de entorno DATABASE_URL explicita
+        env_database_url = os.environ.get("DATABASE_URL")
+        
         railway_user = os.environ.get("POSTGRES_USER")
         railway_password = os.environ.get("POSTGRES_PASSWORD")
         railway_host = os.environ.get("POSTGRES_HOST", os.environ.get("RAILWAY_PRIVATE_DOMAIN", "postgres.railway.internal"))
         railway_db = os.environ.get("POSTGRES_DB")
-        
-        if railway_user and railway_password and railway_host:
-            # Usar variables individuales de Railway
+
+        if env_database_url:
+            values["database_url"] = env_database_url
+        elif railway_user and railway_password and railway_host:
+            # Usar variables individuales de Railway como fallback
             values["database_url"] = f"postgresql://{railway_user}:{railway_password}@{railway_host}:5432/{railway_db or 'railway'}"
         else:
-            # Intentar usar DATABASE_URL del entorno
-            env_database_url = os.environ.get("DATABASE_URL")
-            if env_database_url and "hostname" not in env_database_url.lower():
-                values["database_url"] = env_database_url
-            else:
-                # Fallback: desarrollo local
-                values["database_url"] = "postgresql://kobo_cacao:kobo_cacao_pass@localhost:5432/kobo_cacao_db"
+            # Fallback a desarrollo local
+            values["database_url"] = "postgresql://kobo_cacao:kobo_cacao_pass@localhost:5432/kobo_cacao_db"
         
         # Redis URL - prioridad: entorno > .env > valor por defecto
         env_redis_url = os.environ.get("REDIS_URL")
