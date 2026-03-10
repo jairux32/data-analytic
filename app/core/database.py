@@ -40,7 +40,7 @@ def load_postgis(dbapi_connection, connection_record):
         cursor.execute("CREATE EXTENSION IF NOT EXISTS postgis")
         cursor.close()
     except Exception:
-        pass
+        dbapi_connection.rollback()
 
 
 # SessionLocal factory
