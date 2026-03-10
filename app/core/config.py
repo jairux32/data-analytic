@@ -4,9 +4,11 @@ Configuración de la aplicación utilizando Pydantic Settings.
 Este módulo define las variables de entorno necesarias para la aplicación
 y proporciona validación automática de tipos.
 """
+import os
 from functools import lru_cache
 from typing import Optional
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -16,6 +18,7 @@ class Settings(BaseSettings):
 
     Utiliza Pydantic Settings para validación automática y transformación
     de tipos. Los valores se leen del archivo .env o variables de entorno.
+    Soporta despliegue en Railway detectando DATABASE_URL y REDIS_URL automáticamente.
     """
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -31,7 +34,7 @@ class Settings(BaseSettings):
     environment: str = "development"
 
     # Database
-    database_url: str = "postgresql://kobo_cacao:kobo_cacao_pass@localhost:5432/kobo_cacao_db"
+    database_url: str = ""
 
     # Security
     secret_key: str = "change-me-in-production"
@@ -40,7 +43,7 @@ class Settings(BaseSettings):
     algorithm: str = "HS256"
 
     # Redis
-    redis_url: str = "redis://localhost:6379/0"
+    redis_url: str = ""
 
     # KoboToolbox
     kobo_instance_url: str = "https://kf.kobotoolbox.org"
@@ -61,6 +64,33 @@ class Settings(BaseSettings):
     # Logging
     log_level: str = "INFO"
     log_format: str = "json"
+
+    @model_validator(mode="before")
+    @classmethod
+    def load_urls_from_environment(cls, values: dict) -> dict:
+        """
+        Carga DATABASE_URL y REDIS_URL del entorno (Railway) o usa valores por defecto.
+        
+        Railway proporciona estas variables automáticamente.
+        """
+        # Database URL - prioridad: entorno > .env > valor por defecto
+        env_database_url = os.environ.get("DATABASE_URL")
+        if env_database_url and "hostname" not in env_database_url.lower():
+            # URL válida del entorno (no es el placeholder de Railway)
+            values["database_url"] = env_database_url
+        else:
+            # Fallback para desarrollo local o Railway mal configurado
+            railway_host = os.environ.get("RAILWAY_PRIVATE_DOMAIN", "postgres.railway.internal")
+            values["database_url"] = f"postgresql://kobo_cacao:kobo_cacao_pass@{railway_host}:5432/kobo_cacao_db"
+        
+        # Redis URL - prioridad: entorno > .env > valor por defecto
+        env_redis_url = os.environ.get("REDIS_URL")
+        if env_redis_url:
+            values["redis_url"] = env_redis_url
+        elif not values.get("redis_url"):
+            values["redis_url"] = "redis://localhost:6379/0"
+        
+        return values
 
     @property
     def kobo_asset_list(self) -> list[str]:
