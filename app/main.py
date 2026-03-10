@@ -38,8 +38,29 @@ app.include_router(auth.router)
 
 @app.on_event("startup")
 def startup_event():
-    """Inicializar base de datos al iniciar la aplicación."""
-    init_db()
+    """Inicializar base de datos al iniciar la aplicación, esperando a que esté disponible."""
+    import time
+    import logging
+    from sqlalchemy.exc import OperationalError
+    
+    max_retries = 5
+    retry_delay = 5
+    
+    for attempt in range(max_retries):
+        try:
+            init_db()
+            break
+        except Exception as e:
+            # psycopg2.OperationalError a menudo viene embebido como causa original
+            if "Connection refused" in str(e) or isinstance(e, OperationalError) or "OperationalError" in str(e):
+                if attempt < max_retries - 1:
+                    logging.warning(f"Esperando a la base de datos (Intento {attempt + 1}/{max_retries}). Reintentando en {retry_delay} segundos...")
+                    time.sleep(retry_delay)
+                else:
+                    logging.error(f"Falla crítica: No se pudo conectar a la base luego de {max_retries} intentos.")
+                    raise e
+            else:
+                raise e
 
 
 @app.get("/")
