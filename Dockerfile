@@ -16,8 +16,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY app/ ./app/
-COPY migrations/ ./migrations/
 COPY scripts/ ./scripts/
+
+# Create migrations directory if it doesn't exist
+RUN mkdir -p /app/migrations
 
 # Create static directory
 RUN mkdir -p /app/app/static
