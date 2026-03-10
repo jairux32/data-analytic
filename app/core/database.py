@@ -33,10 +33,14 @@ def load_postgis(dbapi_connection, connection_record):
     Habilita la extensión PostGIS al conectar a la base de datos.
 
     Esto permite usar tipos geométricos como POINT, POLYGON, etc.
+    Si PostGIS no está disponible, continúa sin él.
     """
-    cursor = dbapi_connection.cursor()
-    cursor.execute("CREATE EXTENSION IF NOT EXISTS postgis")
-    cursor.close()
+    try:
+        cursor = dbapi_connection.cursor()
+        cursor.execute("CREATE EXTENSION IF NOT EXISTS postgis")
+        cursor.close()
+    except Exception:
+        pass
 
 
 # SessionLocal factory
