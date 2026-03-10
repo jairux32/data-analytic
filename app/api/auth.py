@@ -61,6 +61,40 @@ router = APIRouter(prefix="/api/auth", tags=["autenticación"])
 
 # === Endpoints de autenticación ===
 
+@router.post("/setup", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+def setup_initial_admin(
+    request: UserCreateRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Configuración inicial (First Run).
+    Crea el usuario administrador maestro SOLO si la base de datos está vacía.
+    """
+    if db.query(User).count() > 0:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="La configuración inicial ya ha sido completada.",
+        )
+
+    # Forzar el rol a admin por seguridad en el primer usuario
+    user = User(
+        email=request.email,
+        password_hash=get_password_hash(request.password),
+        full_name=request.full_name,
+        role="admin",  
+        zone="todas", 
+        is_active=True,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    log_audit(db, "system_setup", user_id=user.id, entity_type="user", entity_id=user.id,
+              details=f"Configuración inicial completada. Admin: {user.email}")
+
+    return user
+
+
 @router.post("/login", response_model=TokenResponse)
 def login(
     form_data: OAuth2PasswordRequestForm = Depends(),

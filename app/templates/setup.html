@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuración Inicial - Diagnóstico Cacaotero</title>
+    <!-- Tailwind CSS (via CDN para simplicidad) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-green-50 to-green-100 min-h-screen flex items-center justify-center p-4">
+    <div class="glass-effect rounded-2xl shadow-xl w-full max-w-md p-8 relative overflow-hidden">
+        
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 border border-green-200">
+                <i class="fas fa-leaf text-2xl text-green-600"></i>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-800">Bienvenido</h1>
+            <p class="text-sm text-gray-500 mt-2">Configura tu primera cuenta de Administrador</p>
+        </div>
+
+        <!-- Alertas -->
+        <div id="error-alert" class="hidden mb-4 p-3 bg-red-50 text-red-700 text-sm rounded-lg flex items-center gap-2">
+            <i class="fas fa-exclamation-circle"></i>
+            <span id="error-message">Error al configurar</span>
+        </div>
+
+        <!-- Formulario Setup -->
+        <form id="setup-form" class="space-y-4">
+            <div>
+                <label for="full_name" class="block text-sm font-medium text-gray-700 mb-1">Nombre Completo</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fas fa-user text-gray-400"></i>
+                    </div>
+                    <input type="text" id="full_name" name="full_name" required
+                        class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                        placeholder="Administrador Cacao">
+                </div>
+            </div>
+
+            <div>
+                <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fas fa-envelope text-gray-400"></i>
+                    </div>
+                    <input type="email" id="email" name="email" required
+                        class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                        placeholder="admin@proyecto.com">
+                </div>
+            </div>
+
+            <div>
+                <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fas fa-lock text-gray-400"></i>
+                    </div>
+                    <input type="password" id="password" name="password" required minlength="6"
+                        class="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                        placeholder="••••••••">
+                </div>
+            </div>
+
+            <!-- Botón Submit -->
+            <button type="submit" id="submit-btn"
+                class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 focus:ring-4 focus:ring-green-500 focus:ring-opacity-50 mt-6">
+                <span>Completar Instalación</span>
+                <i class="fas fa-arrow-right"></i>
+            </button>
+        </form>
+
+        <p class="text-xs text-center inline-block w-full mt-6 text-gray-400">Esta pantalla se bloqueará permanentemente después del primer uso.</p>
+    </div>
+
+    <!-- Script de configuración -->
+    <script>
+        document.getElementById('setup-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const btn = document.getElementById('submit-btn');
+            const errorAlert = document.getElementById('error-alert');
+            const errorMessage = document.getElementById('error-message');
+            
+            // UI Update
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Configurando...';
+            errorAlert.classList.add('hidden');
+
+            const payload = {
+                email: document.getElementById('email').value,
+                password: document.getElementById('password').value,
+                full_name: document.getElementById('full_name').value,
+                role: "admin",
+                zone: "todas",
+                is_active: true
+            };
+
+            try {
+                // LLamada al endpoint interno del backend para crear admin inicial
+                const response = await fetch('/api/auth/setup', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    // Si funcionó, enviar al login
+                    window.location.href = '/login?setup=success';
+                } else {
+                    const data = await response.json();
+                    throw new Error(data.detail || 'Error al configurar');
+                }
+            } catch (error) {
+                errorMessage.textContent = error.message;
+                errorAlert.classList.remove('hidden');
+                
+                // Restablecer botón
+                btn.disabled = false;
+                btn.innerHTML = '<span>Completar Instalación</span><i class="fas fa-arrow-right"></i>';
+            }
+        });
+    </script>
+</body>
+</html>
