@@ -82,6 +82,12 @@ class Settings(BaseSettings):
         railway_db = os.environ.get("POSTGRES_DB")
 
         if env_database_url:
+            # Limpiar prefijos indeseados (como 'data-analytic.postgres://')
+            if "postgres://" in env_database_url:
+                env_database_url = "postgresql://" + env_database_url.split("postgres://")[-1]
+            elif "postgresql://" in env_database_url:
+                env_database_url = "postgresql://" + env_database_url.split("postgresql://")[-1]
+                
             values["database_url"] = env_database_url
         elif railway_user and railway_password and railway_host:
             # Usar variables individuales de Railway como fallback
