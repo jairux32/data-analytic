@@ -77,6 +77,24 @@ def init_db() -> None:
     Inicializa la base de datos creando todas las tablas.
 
     Esta función se debe llamar al iniciar la aplicación.
+    Intenta hasta 5 veces para esperar a que PostgreSQL suba en entornos como Railway.
     """
     from app import models  # noqa: F401
-    Base.metadata.create_all(bind=engine)
+    import time
+    from sqlalchemy.exc import OperationalError
+    
+    max_retries = 5
+    retry_delay = 5
+    
+    for attempt in range(max_retries):
+        try:
+            Base.metadata.create_all(bind=engine)
+            print("Tablas de base de datos creadas exitosamente.")
+            break
+        except OperationalError as e:
+            if attempt < max_retries - 1:
+                print(f"Error al conectar con la base de datos (Intento {attempt + 1}/{max_retries}). Reintentando en {retry_delay} segundos...")
+                time.sleep(retry_delay)
+            else:
+                print(f"No se pudo conectar a la base de datos después de {max_retries} intentos.")
+                raise e
